@@ -16,6 +16,16 @@ It's a single, dependency-free binary for macOS, Linux, and Windows.
 
 ## Installation
 
+### Homebrew (macOS & Linux)
+
+```bash
+brew install Pixwel/tap/pixwel
+```
+
+Recommended on macOS — Homebrew installs aren't quarantined, so you skip the Gatekeeper prompt.
+
+### Direct download
+
 Download the archive for your platform from the
 [latest release](https://github.com/Pixwel/pixwel-cli/releases/latest):
 
@@ -27,15 +37,25 @@ Download the archive for your platform from the
 | Linux · ARM64 | `pixwel_<version>_linux_arm64.tar.gz` |
 | Windows · x86-64 | `pixwel_<version>_windows_amd64.zip` |
 
-Extract it and put `pixwel` on your `PATH`:
+Downloading with `curl` (rather than a browser) also avoids macOS quarantine:
 
 ```bash
-tar -xzf pixwel_*.tar.gz
+curl -L -o pixwel.tar.gz \
+  https://github.com/Pixwel/pixwel-cli/releases/latest/download/pixwel_<version>_darwin_arm64.tar.gz
+tar -xzf pixwel.tar.gz
 sudo mv pixwel /usr/local/bin/
 pixwel --version
 ```
 
 On Windows, unzip the archive and add `pixwel.exe` to your `PATH`.
+
+> **macOS: "cannot be opened because it is from an unidentified developer"?**
+> The binaries aren't Apple-notarized yet. Install via Homebrew (above), or clear the quarantine
+> flag once on a downloaded binary:
+> ```bash
+> xattr -dr com.apple.quarantine /usr/local/bin/pixwel
+> ```
+> (or right-click the binary → Open, or allow it under System Settings → Privacy & Security).
 
 ## Usage
 
@@ -74,8 +94,27 @@ pixwel trigger asset.updated
 | `pixwel whoami` | Show the active account and environment. |
 | `pixwel listen [--forward-to <url>]` | Stream events to a local URL or the terminal. `--events a,b` to filter, `--reset-secret` to roll the secret. |
 | `pixwel trigger [event]` | Send a test event. Omit the event to list what's available. |
+| `pixwel upload offline <file>` | Upload an offline preview to a work request. `--work-request` (required), `--tag`. |
+| `pixwel upload final <file>` | Upload a final file to a work request; creates an ingest. `--work-request` (required), `--tag`. |
 
 Run `pixwel <command> --help` for the full options of any command.
+
+## Upload files
+
+Upload offlines and final deliverables to a work request the same way the platform does — the CLI
+requests a direct-to-S3 authorization, streams the file up, and records it:
+
+```bash
+# an offline preview
+pixwel upload offline --work-request 6a6a… --tag "COMING SOON" ./offline.mov
+
+# a final delivery — also creates an ingest, which kicks off processing
+pixwel upload final --work-request 6a6a… --tag "COMING SOON" ./final.mov
+```
+
+`--tag` is required when the work request has tags. You need upload permission on the work request
+(the same access the API enforces). Files go up over a single S3 POST, which suits offlines and
+modest finals; multi-gigabyte masters are still best delivered via Aspera.
 
 ## How `listen` works
 
@@ -94,6 +133,13 @@ presigned download URL — are in [`examples/`](./examples).
 Credentials are stored in `~/.config/pixwel/config.json` (mode `600`). Set `PIXWEL_CONFIG` to
 change the location and `NO_COLOR=1` to disable color. Point at a different environment with
 `pixwel login --host staging` (`production`, `staging`, or a full API base URL).
+
+### Crash reporting
+
+The CLI reports **unexpected crashes and server-side (5xx) errors** to Sentry so we can fix bugs.
+It never reports your routine errors, input, files, or credentials — credential-like strings are
+scrubbed and no hostname is sent. Opt out any time with the standard `DO_NOT_TRACK=1`, or with
+`PIXWEL_TELEMETRY=off`.
 
 ## Documentation
 

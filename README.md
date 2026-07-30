@@ -96,6 +96,7 @@ pixwel trigger asset.updated
 | `pixwel trigger [event]` | Send a test event. Omit the event to list what's available. |
 | `pixwel upload offline <file>` | Upload an offline preview to a work request. `--work-request` (required), `--tag`. |
 | `pixwel upload final <file>` | Upload a final file to a work request; creates an ingest. `--work-request` (required), `--tag`. |
+| `pixwel download <file-id>` | Download a file's contents (S3-backed or Mongo-stored). `-o` for the output path. |
 | `pixwel get\|post\|patch\|put\|delete <path>` | Raw request to any API path. `-q` query params (get), `-d`/`--json` body, `--dry-run`. |
 
 Run `pixwel <command> --help` for the full options of any command.
@@ -116,6 +117,19 @@ pixwel upload final --work-request 6a6a… --tag "COMING SOON" ./final.mov
 `--tag` is required when the work request has tags. You need upload permission on the work request
 (the same access the API enforces). Files go up over a single S3 POST, which suits offlines and
 modest finals; multi-gigabyte masters are still best delivered via Aspera.
+
+## Download files
+
+Fetch a file's bytes by id — one command whether the file lives in S3 or in Mongo (posters,
+thumbnails):
+
+```bash
+pixwel download <file-id>              # saves to a filename derived from the file
+pixwel download <file-id> -o out.jpg   # or a path you choose
+```
+
+Behind one URL: S3-backed files redirect to a short-lived presigned URL; Mongo-stored blobs stream
+straight from the API. To inspect the record instead of the bytes, use `pixwel get /files/<id>`.
 
 ## Raw API requests
 

@@ -96,6 +96,7 @@ pixwel trigger asset.updated
 | `pixwel trigger [event]` | Send a test event. Omit the event to list what's available. |
 | `pixwel upload offline <file>` | Upload an offline preview to a work request. `--work-request` (required), `--tag`. |
 | `pixwel upload final <file>` | Upload a final file to a work request; creates an ingest. `--work-request` (required), `--tag`. |
+| `pixwel get\|post\|patch\|put\|delete <path>` | Raw request to any API path. `-q` query params (get), `-d`/`--json` body, `--dry-run`. |
 
 Run `pixwel <command> --help` for the full options of any command.
 
@@ -115,6 +116,23 @@ pixwel upload final --work-request 6a6a… --tag "COMING SOON" ./final.mov
 `--tag` is required when the work request has tags. You need upload permission on the work request
 (the same access the API enforces). Files go up over a single S3 POST, which suits offlines and
 modest finals; multi-gigabyte masters are still best delivered via Aspera.
+
+## Raw API requests
+
+For anything without a dedicated command, hit the API directly with your stored token — like
+Stripe's `get`/`post`, plus `patch`/`put` (the Pixwel API updates via PATCH, not POST):
+
+```bash
+pixwel get /workrequests/6a6a…                          # read
+pixwel get /workrequests -q status=submitted             # with query params
+pixwel patch /workrequests/6a6a… -d status=in_progress   # update a work request's status
+pixwel post /offlines -d workRequest=6a6a… -d path=…      # create
+pixwel delete /offlines/6a6a…                            # delete
+```
+
+`-d key=value` sends a string; `-d key:=<json>` sends a typed or nested value (`-d count:=3`,
+`-d source.url=s3://…`); `--json '<raw>'` sends an exact body. Add `--dry-run` to preview the
+request without sending it. Responses are pretty-printed JSON.
 
 ## How `listen` works
 

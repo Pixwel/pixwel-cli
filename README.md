@@ -4,6 +4,13 @@
 integrations. Receive live webhook events on your own machine, replay them against your local
 server, and fire test events on demand — without deploying anything or waiting for real activity.
 
+<p align="center">
+  <img src="./demo/demo.gif"
+       alt="pixwel login, then pixwel listen streaming webhook events, then the same events in the --tui dashboard"
+       width="900"><br>
+  <sub><code>pixwel login</code>, then <code>pixwel listen</code> — and the same events in <code>--tui</code>.</sub>
+</p>
+
 **With the Pixwel CLI, you can:**
 
 - Receive webhook events on `localhost` — no tunnel, no public URL, works from behind a firewall
@@ -70,20 +77,45 @@ pixwel listen --forward-to localhost:3000/webhooks
 server:
 
 ```
-Ready. Forwarding events to http://localhost:3000/webhooks
-Signing secret: whsec_3f9a…
-Events: all
+╭──────────────────────────────────────────────────────────╮
+│  Ready — listening for webhook events                    │
+│                                                          │
+│  Forwarding to   http://localhost:3000/webhooks          │
+│  Signing secret  whsec_3f9a…                             │
+│  Events          all                                     │
+╰──────────────────────────────────────────────────────────╯
+Ctrl-C to stop.
 
-10:04:12  asset.updated                 -> 200 OK
-10:04:19  work_request.completed        -> 500
+10:04:12  asset.updated                 → 200 OK
+10:04:19  workrequest.approved          → 500
 ```
 
-Drop `--forward-to` to watch events print in the terminal instead. In a second terminal, fire a
-test event without touching real data:
+Drop `--forward-to` to watch events print in the terminal instead — each one syntax-highlighted, as
+in the recording above. `--events asset.updated,file.created` narrows what you subscribe to, and
+`--reset-secret` rolls the signing secret.
+
+### The dashboard
+
+Add `--tui` for a full-screen view instead of a scrolling log — the deliveries down one side, the
+selected payload on the other:
 
 ```bash
-pixwel trigger asset.updated
+pixwel listen --tui --forward-to localhost:3000/webhooks
 ```
+
+| Key | |
+|---|---|
+| `↑` `↓` (or `k` `j`) | move through the deliveries |
+| `f` | follow the newest delivery again |
+| `h` | show the signed headers above the payload |
+| `r` | replay the selected delivery to your `--forward-to` URL |
+| `q` | quit |
+
+Replay re-sends the delivery exactly as it arrived, same body and same `Pixwel-Signature` — so you
+can fix your handler and try the identical event again without waiting for another one.
+
+The plain log is still the default: it scrolls back, greps, and pastes into a bug report, which a
+full-screen view can't.
 
 ### Commands
 
@@ -92,8 +124,8 @@ pixwel trigger asset.updated
 | `pixwel login` | Authenticate and store a token (production by default; `--host`/`--choose-host` to change). Use `--token pat_…` for two-factor accounts. |
 | `pixwel logout` | Forget stored credentials. |
 | `pixwel whoami` | Show the active account and environment. |
-| `pixwel listen [--forward-to <url>]` | Stream events to a local URL or the terminal. `--events a,b` to filter, `--reset-secret` to roll the secret. |
-| `pixwel trigger [event]` | Send a test event. Omit the event to list what's available. |
+| `pixwel listen [--forward-to <url>]` | Stream events to a local URL or the terminal. `--tui` for the dashboard, `--events a,b` to filter, `--reset-secret` to roll the secret. |
+| `pixwel trigger [event]` | Send a test event. Omit the event to pick one from a filterable list. |
 | `pixwel upload offline <file>` | Upload an offline preview to a work request. `--work-request` (required), `--tag`. |
 | `pixwel upload final <file>` | Upload a final file to a work request; creates an ingest. `--work-request` (required), `--tag`. |
 | `pixwel download <file-id>` | Download a file's contents (S3-backed or Mongo-stored). `-o` for the output path. |
@@ -114,6 +146,9 @@ pixwel upload offline --work-request 6a6a… --tag "COMING SOON" ./offline.mov
 pixwel upload final --work-request 6a6a… --tag "COMING SOON" ./final.mov
 ```
 
+Both show a live progress meter — bytes transferred, percentage, and rate — while the file streams
+(and stay quiet when output isn't a terminal, so CI logs don't fill up with redraws).
+
 `--tag` is required when the work request has tags. You need upload permission on the work request
 (the same access the API enforces). Files go up over a single S3 POST, which suits offlines and
 modest finals; multi-gigabyte masters are still best delivered via Aspera.
@@ -130,6 +165,13 @@ pixwel download <file-id> -o out.jpg   # or a path you choose
 
 Behind one URL: S3-backed files redirect to a short-lived presigned URL; Mongo-stored blobs stream
 straight from the API. To inspect the record instead of the bytes, use `pixwel get /files/<id>`.
+
+<p align="center">
+  <img src="./demo/files.gif"
+       alt="pixwel upload offline streaming a file up with a progress meter, then pixwel download fetching one back"
+       width="900"><br>
+  <sub>Uploading an offline, then fetching a file back by id.</sub>
+</p>
 
 ## Raw API requests
 
@@ -163,9 +205,21 @@ presigned download URL — are in [`examples/`](./examples).
 ## Configuration
 
 Credentials are stored in `~/.config/pixwel/config.json` (mode `600`). Set `PIXWEL_CONFIG` to
-change the location and `NO_COLOR=1` to disable color. `login` defaults to **production**; use
+change the location.
+
+Output adapts to wherever it lands: full color in a terminal that supports it, gracefully reduced on
+one that doesn't, and plain text when piped or redirected — so `pixwel get … | jq` and CI logs stay
+clean. `NO_COLOR=1` disables color everywhere; `CLICOLOR_FORCE=1` keeps it through a pipe.
+
+`login` defaults to **production**; use
 `pixwel login --host staging` (or `local`, or a full API base URL), or `--choose-host` for the
-interactive environment picker.
+interactive environment picker. Set `PIXWEL_HOST` to change what a bare `pixwel login` targets —
+handy in CI, where threading `--host` through every call is noise:
+
+```bash
+export PIXWEL_HOST=staging   # a name, or a full API base URL
+pixwel login --token pat_…
+```
 
 ### Crash reporting
 

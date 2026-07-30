@@ -89,7 +89,7 @@ pixwel trigger asset.updated
 
 | Command | Description |
 |---|---|
-| `pixwel login` | Authenticate and store a token. Use `--token pat_…` for two-factor accounts. |
+| `pixwel login` | Authenticate and store a token (production by default; `--host`/`--choose-host` to change). Use `--token pat_…` for two-factor accounts. |
 | `pixwel logout` | Forget stored credentials. |
 | `pixwel whoami` | Show the active account and environment. |
 | `pixwel listen [--forward-to <url>]` | Stream events to a local URL or the terminal. `--events a,b` to filter, `--reset-secret` to roll the secret. |
@@ -149,8 +149,9 @@ presigned download URL — are in [`examples/`](./examples).
 ## Configuration
 
 Credentials are stored in `~/.config/pixwel/config.json` (mode `600`). Set `PIXWEL_CONFIG` to
-change the location and `NO_COLOR=1` to disable color. Point at a different environment with
-`pixwel login --host staging` (`production`, `staging`, or a full API base URL).
+change the location and `NO_COLOR=1` to disable color. `login` defaults to **production**; use
+`pixwel login --host staging` (or `local`, or a full API base URL), or `--choose-host` for the
+interactive environment picker.
 
 ### Crash reporting
 

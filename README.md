@@ -181,7 +181,7 @@ Stripe's `get`/`post`, plus `patch`/`put` (the Pixwel API updates via PATCH, not
 ```bash
 pixwel get /workrequests/6a6a…                          # read
 pixwel get /workrequests -q status=submitted             # with query params
-pixwel patch /workrequests/6a6a… -d status=in_progress   # update a work request's status
+pixwel patch /workrequests/6a6a… -d status=in-progress   # update a work request's status
 pixwel post /offlines -d workRequest=6a6a… -d path=…      # create
 pixwel delete /offlines/6a6a…                            # delete
 ```
